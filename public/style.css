@@ -323,3 +323,5 @@ p.errors { padding-left: 16px; }
   .footer-inner { grid-template-columns: 1fr; }
 }
 .js .js-hide { display: none; }
+
+.tile[hidden] { display: none; }

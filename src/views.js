@@ -63,7 +63,7 @@ export function layout(ctx, { title, body, description = '' }) {
     <nav class="nav" id="nav">
       ${nav.map(([href, label]) => html`<a href="${href}" class="${ctx.path === href ? 'active' : ''}">${label}</a>`)}
     </nav>
-    <a class="cart-btn" href="/carrito" aria-label="Carrito">${icon.bag}${ctx.cartCount ? html`<span class="cart-count">${ctx.cartCount}</span>` : ''}</a>
+    ${ctx.static ? html`<a class="cart-btn" href="${waLink(s.whatsapp, 'Hola! Quiero comprar una carta')}" target="_blank" rel="noopener" aria-label="WhatsApp">${icon.bag}</a>` : html`<a class="cart-btn" href="/carrito" aria-label="Carrito">${icon.bag}${ctx.cartCount ? html`<span class="cart-count">${ctx.cartCount}</span>` : ''}</a>`}
     <button class="menu-btn" type="button" data-toggle="nav" aria-label="Menú"><span></span><span></span></button>
   </div>
 </header>
@@ -92,7 +92,7 @@ ${ctx.flash ? html`<div class="wrap"><p class="flash flash-${ctx.flash.type}" ro
   </div>
   <div class="wrap footer-bottom">
     <span>© ${new Date().getFullYear()} ${s.store_name}</span>
-    <a href="/admin">Acceso administrador</a>
+    ${ctx.static ? html`<span>Vista previa</span>` : html`<a href="/admin">Acceso administrador</a>`}
   </div>
 </footer>
 </body>
@@ -117,7 +117,7 @@ function tags(card) {
 }
 
 function tile(card) {
-  return html`<a class="tile" href="/carta/${card.slug}" data-status="${card.status}">
+  return html`<a class="tile" href="/carta/${card.slug}" data-status="${card.status}" data-team="${card.team}" data-rookie="${card.rookie ? 1 : 0}" data-serial="${card.serial ? 1 : 0}" data-price="${card.price}" data-search="${[card.title, card.player, card.team, card.brand].join(' ').toLowerCase()}">
     <div class="tile-media">
       ${cardArt(card)}
       <div class="tile-tags">${tags(card)}</div>
@@ -246,7 +246,8 @@ export function cardPage(ctx, { card, related }) {
         <h1>${card.title}</h1>
         <p class="detail-price">${money(card.price)}</p>
 
-        ${available ? html`
+        ${available && ctx.static ? html`<div class="buy"><a class="btn btn-primary btn-block" target="_blank" rel="noopener" href="${waLink(s.whatsapp, `Hola! Quiero comprar la carta: ${card.title} (${money(card.price)})`)}">Comprar por WhatsApp</a></div>`
+        : available ? html`
           <form method="post" action="/carrito/agregar" class="buy">
             ${csrfField(ctx)}<input type="hidden" name="card_id" value="${card.id}">
             <button class="btn btn-primary btn-block" name="comprar" value="1">Comprar ahora</button>
@@ -367,7 +368,7 @@ export function sellPage(ctx, { form = {}, errors = [], sent = false }) {
         <li><span class="mono">03</span><div><strong>Cobrá</strong><p class="muted">Transferencia o efectivo al entregar.</p></div></li>
       </ol>
     </div>
-    ${sent ? html`<div class="panel center"><h2>¡Recibimos tu oferta!</h2><p class="muted">Te contactamos por WhatsApp o email en menos de 48 h.</p><a class="btn btn-ghost" href="/">Volver al catálogo</a></div>` : html`
+    ${ctx.static ? html`<div class="panel"><h2 style="margin-bottom:12px">Mandanos tus cartas</h2><p class="muted">Escribinos por WhatsApp con fotos (frente y dorso) y el precio que pedís. Te respondemos en menos de 48 h.</p><a class="btn btn-primary btn-block" target="_blank" rel="noopener" href="${waLink(ctx.settings.whatsapp, 'Hola! Quiero ofrecerles unas cartas')}">Ofrecer por WhatsApp</a></div>` : sent ? html`<div class="panel center"><h2>¡Recibimos tu oferta!</h2><p class="muted">Te contactamos por WhatsApp o email en menos de 48 h.</p><a class="btn btn-ghost" href="/">Volver al catálogo</a></div>` : html`
     <form class="panel" method="post" action="/vender" enctype="multipart/form-data" novalidate>
       <input type="hidden" name="_csrf" value="${ctx.csrf}">
       ${errors.length ? html`<ul class="errors">${errors.map((e) => html`<li>${e}</li>`)}</ul>` : ''}

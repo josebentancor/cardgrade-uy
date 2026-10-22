@@ -20,6 +20,12 @@ al pie de cada página). Una vez dentro, aparece "Panel" en el menú superior.
 Con `DEMO_PAYMENTS=1` y sin credenciales de MP (sólo fuera de producción), el checkout muestra un botón
 "Simular pago aprobado" para probar el flujo completo.
 
+## Vista previa pública (GitHub Pages)
+
+`docs/` contiene una versión estática del sitio (catálogo, fichas, guía) publicada con GitHub Pages.
+Ahí la compra es por WhatsApp: los pagos con Mercado Pago y el panel necesitan el servidor Node.
+Para regenerarla: `npm run build-static -- /nombre-del-repo` (en Git Bash anteponer `MSYS_NO_PATHCONV=1`).
+
 ## Producción
 
 1. Copiar `.env.example` a `.env` y completar `BASE_URL` (https), `MP_ACCESS_TOKEN` y `MP_WEBHOOK_SECRET`.
