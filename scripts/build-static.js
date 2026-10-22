@@ -14,7 +14,8 @@ for (const f of ['style.css', 'app.js', 'logo.jpg']) fs.copyFileSync(path.join('
 fs.writeFileSync(path.join(OUT, '.nojekyll'), '');
 
 const settings = getSettings();
-const ctx = (p) => ({ settings, cartCount: 0, csrf: '', flash: null, path: p, isAdmin: false, static: true });
+const ticker = db.prepare("SELECT title, price FROM cards WHERE status = 'disponible' ORDER BY created_at DESC LIMIT 10").all();
+const ctx = (p) => ({ settings, cartCount: 0, csrf: '', flash: null, path: p, isAdmin: false, static: true, ticker });
 const fix = (page) => String(page)
   .replace(/(href|src|action)="\/(?!\/)/g, `$1="${BASE}/`)
   .replace('<body>', '<body data-static>');
@@ -34,12 +35,28 @@ const stats = {
 };
 const teams = [...new Set(cards.map((c) => c.team).filter(Boolean))].sort();
 const q = { q: '', estado: '', tipo: '', equipo: '', orden: '', rookie: '', numerada: '' };
-write('index.html', v.catalogPage(ctx('/'), { cards, stats, q, teams, page: 1, pages: 1 }));
+const counts = {
+  todas: cards.length, disponibles: count('disponible'), uruguay: cards.filter((c) => c.team === 'Uruguay').length,
+  river: cards.filter((c) => c.team === 'River Plate').length, boca: cards.filter((c) => c.team === 'Boca Juniors').length,
+  rookies: cards.filter((c) => c.rookie).length, numeradas: cards.filter((c) => c.serial).length,
+};
+write('index.html', v.catalogPage(ctx('/'), { cards, stats, q, teams, page: 1, pages: 1, counts }));
 
 for (const card of cards) {
   const related = cards.filter((c) => c.status === 'disponible' && c.id !== card.id)
     .sort((a, b) => (b.team === card.team) - (a.team === card.team)).slice(0, 4);
   write(`carta/${card.slug}/index.html`, v.cardPage(ctx('/carta'), { card, related }));
+}
+// Demostración del flujo de compra: datos → Mercado Pago (simulado) → resultado.
+for (const card of cards.filter((c) => c.status === 'disponible')) {
+  const base = `carta/${card.slug}`;
+  const order = { id: '', total: card.price, shipping: 0 };
+  write(`${base}/comprar/index.html`, v.checkoutPage(ctx('/checkout'), { items: [card], subtotal: card.price, action: `/${base}/pagar/` }));
+  write(`${base}/pagar/index.html`, v.mpDemoPage(ctx('/pago'), { order, items: [card],
+    links: { approved: `/${base}/pago-aprobado/`, pending: `/${base}/pago-pendiente/`, rejected: `/${base}/pago-rechazado/` } }));
+  for (const [dir, status] of [['pago-aprobado', 'pagada'], ['pago-pendiente', 'pendiente'], ['pago-rechazado', 'cancelada']]) {
+    write(`${base}/${dir}/index.html`, v.resultPage(ctx('/pago'), { order: { ...order, id: 'DEMO0000', status }, items: [card], demo: true, retryHref: `/${base}/pagar/` }));
+  }
 }
 write('vender/index.html', v.sellPage(ctx('/vender'), {}));
 write('guia/index.html', v.guidePage(ctx('/guia')));

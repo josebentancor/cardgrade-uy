@@ -60,3 +60,31 @@ document.addEventListener('DOMContentLoaded', () => {
     c.classList.toggle('on', s === current || (!s && !current));
   });
 });
+
+// Demostración estática de la compra: los datos quedan sólo en este navegador (sessionStorage).
+document.addEventListener('DOMContentLoaded', () => {
+  if (!document.body.hasAttribute('data-static')) return;
+  const fmt = (n) => 'UY$ ' + Number(n).toLocaleString('es-UY');
+  const form = document.querySelector('form[data-checkout]');
+  if (form) {
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const d = new FormData(form);
+      const missing = ['name', 'email', 'phone'].filter((k) => !String(d.get(k) || '').trim());
+      if (d.get('delivery') === 'envio' && !String(d.get('address') || '').trim()) missing.push('address');
+      form.querySelectorAll('input, textarea').forEach((el) => { el.style.outline = missing.includes(el.name) ? '2px solid #e5401c' : ''; });
+      if (missing.length) return;
+      try { sessionStorage.setItem('cg-delivery', d.get('delivery')); } catch {}
+      location.href = form.getAttribute('action');
+    });
+  }
+  let delivery = 'envio';
+  try { delivery = sessionStorage.getItem('cg-delivery') || 'envio'; } catch {}
+  const total = document.querySelector('[data-total][data-base]');
+  if (total && !form && delivery === 'envio') {
+    const sum = Number(total.dataset.base) + Number(total.dataset.ship);
+    total.textContent = fmt(sum);
+    document.querySelectorAll('[data-total-text]').forEach((el) => { el.textContent = fmt(sum); });
+    document.querySelectorAll('[data-ship-row]').forEach((el) => { el.hidden = false; });
+  }
+});

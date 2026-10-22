@@ -11,12 +11,14 @@ const BRANDS = ['Topps Chrome', 'Stadium Chrome', 'Topps Now', 'Donruss Optic', 
 const TEAMS = [['River', 'River Plate'], ['Boca', 'Boca Juniors'], ['Argentina', 'Argentina'], ['Liverpool', 'Liverpool'], ['Copa América', 'Uruguay']];
 const URUGUAYOS = ['Valverde', 'Araujo', 'Pereira', 'Núñez', 'Arrascaeta', 'Cáceres', 'Pellistri', 'Olivera', 'Muslera', 'Ugarte', 'Sánchez', 'Bentancur', 'Godin', 'Suárez', 'Cavani', 'Giménez', 'Forlán', 'De La Cruz', 'Rodríguez'];
 
-function parseTitle(title) {
+export function parseTitle(title) {
   const brand = BRANDS.find((b) => title.toLowerCase().includes(b.toLowerCase())) || '';
   const serial = (title.match(/\/\d+/) || [''])[0];
   const team = (TEAMS.find(([k]) => title.includes(k)) || [])[1] ||
     (URUGUAYOS.some((u) => title.includes(u)) ? 'Uruguay' : '');
-  const cut = brand ? title.toLowerCase().indexOf(brand.toLowerCase()) : title.search(/\s\/\d+/);
+  // El nombre del jugador es lo que va antes de la marca, "Rookie" o la numeración (lo que aparezca primero).
+  const marks = [brand && title.toLowerCase().indexOf(brand.toLowerCase()), title.search(/\s(rookie|\/\d+)/i)].filter((i) => i > 0);
+  const cut = marks.length ? Math.min(...marks) : -1;
   const player = (cut > 0 ? title.slice(0, cut) : title).trim();
   return { brand, serial, team, player, rookie: /rookie/i.test(title) ? 1 : 0 };
 }

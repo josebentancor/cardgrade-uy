@@ -117,7 +117,8 @@ app.use((req, res, next) => {
   const cart = Array.isArray(req.session.cart) ? req.session.cart : [];
   const flash = req.session.flash;
   if (flash) delete req.session.flash;
-  res.locals.ctx = { settings: getSettings(), cartCount: cart.length, csrf: csrfToken(req), flash, path: req.path, isAdmin: Boolean(req.session.adminId) };
+  const ticker = db.prepare("SELECT title, price FROM cards WHERE status = 'disponible' ORDER BY created_at DESC LIMIT 10").all();
+  res.locals.ctx = { settings: getSettings(), cartCount: cart.length, csrf: csrfToken(req), flash, path: req.path, isAdmin: Boolean(req.session.adminId), ticker };
   next();
 });
 // Las rutas con fotos verifican CSRF después de multer (ver cada ruta); el resto, acá.
@@ -167,8 +168,11 @@ app.get('/', (req, res) => {
   const counts = db.prepare("SELECT SUM(status='disponible') disponibles, SUM(status='vendida') vendidas, COUNT(*) total FROM cards WHERE status != 'oculta'").get();
   const featured = db.prepare("SELECT * FROM cards WHERE status = 'disponible' ORDER BY (images != '[]') DESC, price DESC LIMIT 3").all();
   const teams = db.prepare("SELECT DISTINCT team FROM cards WHERE team != '' AND status != 'oculta' ORDER BY team").all().map((r) => r.team);
+  const tabCounts = db.prepare(`SELECT COUNT(*) todas, SUM(status = 'disponible') disponibles, SUM(team = 'Uruguay') uruguay,
+    SUM(team = 'River Plate') river, SUM(team = 'Boca Juniors') boca, SUM(rookie = 1) rookies, SUM(serial != '') numeradas
+    FROM cards WHERE status != 'oculta'`).get();
   send(res, v.catalogPage(res.locals.ctx, {
-    cards, q, teams, page, pages,
+    cards, q, teams, page, pages, counts: tabCounts, offset: (page - 1) * PAGE_SIZE,
     stats: { disponibles: counts.disponibles || 0, vendidas: counts.vendidas || 0, total: counts.total || 0, featured },
   }));
 });
@@ -276,7 +280,7 @@ app.post('/checkout', checkoutLimiter, async (req, res, next) => {
   req.session.cart = [];
   req.session.orders = [...(req.session.orders || []), order.id].slice(-10);
 
-  if (DEMO) return res.redirect(`/pago/resultado?pedido=${order.id}`);
+  if (DEMO) return res.redirect(`/pago/demo/${order.id}`);
   try {
     const pref = await createPreference(order, items, BASE_URL);
     db.prepare('UPDATE orders SET mp_preference_id = ? WHERE id = ?').run(pref.id, order.id);
@@ -313,11 +317,25 @@ app.get('/pago/resultado', async (req, res, next) => {
 });
 
 if (DEMO) {
+  // Simulación del paso de Mercado Pago para probar el flujo sin credenciales (nunca en producción).
+  app.get('/pago/demo/:id', (req, res, next) => {
+    const id = req.params.id;
+    if (!(req.session.orders || []).includes(id)) return next();
+    const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(id);
+    if (!order) return next();
+    if (order.status !== 'pendiente') return res.redirect(`/pago/resultado?pedido=${id}`);
+    const items = db.prepare('SELECT title, price FROM order_items WHERE order_id = ?').all(id);
+    send(res, v.mpDemoPage(res.locals.ctx, { order, items, action: `/pago/demo/${id}` }));
+  });
   app.post('/pago/demo/:id', (req, res, next) => {
     const id = req.params.id;
     if (!(req.session.orders || []).includes(id)) return next();
-    const order = db.prepare('SELECT total FROM orders WHERE id = ?').get(id);
-    applyPayment({ id: `demo-${Date.now()}`, external_reference: id, status: 'approved', currency_id: 'UYU', transaction_amount: order.total });
+    const order = db.prepare('SELECT total, status FROM orders WHERE id = ?').get(id);
+    if (!order) return next();
+    const status = { approved: 'approved', rejected: 'rejected' }[req.body.result];
+    if (status && order.status === 'pendiente') {
+      applyPayment({ id: `demo-${Date.now()}`, external_reference: id, status, currency_id: 'UYU', transaction_amount: order.total });
+    }
     res.redirect(`/pago/resultado?pedido=${id}`);
   });
 }

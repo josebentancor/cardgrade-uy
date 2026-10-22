@@ -28,72 +28,57 @@ export function waLink(phone, text) {
 
 /* ---------- Layout ---------- */
 
-const logo = html`<img class="logo" src="/static/logo.jpg" alt="" width="36" height="36">`;
-const icon = {
-  bag: raw('<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M5.5 8h13l-1 12.5h-11L5.5 8Zm3.5 0V6.5a3 3 0 0 1 6 0V8" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>'),
-  arrow: raw('<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>'),
-  search: raw('<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="11" cy="11" r="6.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="m16 16 4.5 4.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>'),
-  shield: raw('<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M12 3 5 6v5.5c0 4.2 2.9 7.9 7 9.5 4.1-1.6 7-5.3 7-9.5V6l-7-3Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="m9 12 2.2 2.2L15.5 10" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>'),
-  truck: raw('<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M3 6.5h11v9H3zM14 10h4l3 3v2.5h-7" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><circle cx="7" cy="17.5" r="1.8" fill="none" stroke="currentColor" stroke-width="1.7"/><circle cx="17.5" cy="17.5" r="1.8" fill="none" stroke="currentColor" stroke-width="1.7"/></svg>'),
-  check: raw('<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="m8.5 12 2.4 2.4 4.6-4.8" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>'),
-};
+const pad = (n) => String(n).padStart(3, '0');
+const arrow = raw('<svg class="ico" viewBox="0 0 20 20" width="16" height="16" aria-hidden="true"><path d="M3 10h13M11 4.5 16.5 10 11 15.5" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>');
 
-export function layout(ctx, { title, body, description = '' }) {
+// "Prizm /125 Rookie Boca" a partir del título sin el nombre del jugador.
+export function setLine(card) {
+  const t = card.player && card.title.startsWith(card.player) ? card.title.slice(card.player.length).trim() : '';
+  return t || card.brand || KIND[card.kind];
+}
+
+export function layout(ctx, { title, body, description = '', bodyClass = '' }) {
   const s = ctx.settings;
-  const nav = [['/', 'Catálogo'], ['/vender', 'Vendé tus cartas'], ['/guia', 'Guía']];
+  const nav = [['/', 'Catálogo'], ['/vender', 'Te compramos'], ['/guia', 'Guía']];
   if (ctx.isAdmin) nav.push(['/admin', 'Panel']);
+  const ticker = (ctx.ticker || []).map((t) => html`<span><b>Nuevo</b> ${t.title} <i>${money(t.price)}</i></span>`);
   return html`<!doctype html>
 <html lang="es-UY">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>${title ? `${title} · ${s.store_name}` : `${s.store_name} — Cartas coleccionables de fútbol`}</title>
-<meta name="description" content="${description || 'Cartas coleccionables de fútbol en Uruguay: Prizm, Optic, Topps Chrome, rookies y numeradas. Comprá seguro con Mercado Pago.'}">
+<title>${title ? `${title} — ${s.store_name}` : `${s.store_name} — Cartas de fútbol, Montevideo`}</title>
+<meta name="description" content="${description || 'Cartas coleccionables de fútbol en Uruguay: Prizm, Optic, Topps Chrome, rookies y numeradas. Comprá con Mercado Pago.'}">
 <link rel="icon" href="/static/logo.jpg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;700;800;900&family=Instrument+Serif:ital@0;1&family=IBM+Plex+Mono:wght@400;500;600&family=Hanken+Grotesk:wght@400;500;600;700&display=swap">
 <link rel="stylesheet" href="/static/style.css">
 <script src="/static/app.js" defer></script>
 </head>
-<body>
-<header class="topbar">
-  <div class="wrap topbar-inner">
-    <a class="brand" href="/">${logo}<span class="brand-name">${s.store_name}</span></a>
-    <nav class="nav" id="nav">
-      ${nav.map(([href, label]) => html`<a href="${href}" class="${ctx.path === href ? 'active' : ''}">${label}</a>`)}
-    </nav>
-    ${ctx.static ? html`<a class="cart-btn" href="${waLink(s.whatsapp, 'Hola! Quiero comprar una carta')}" target="_blank" rel="noopener" aria-label="WhatsApp">${icon.bag}</a>` : html`<a class="cart-btn" href="/carrito" aria-label="Carrito">${icon.bag}${ctx.cartCount ? html`<span class="cart-count">${ctx.cartCount}</span>` : ''}</a>`}
-    <button class="menu-btn" type="button" data-toggle="nav" aria-label="Menú"><span></span><span></span></button>
-  </div>
+<body class="${bodyClass}">
+${ticker.length ? html`<div class="ticker" aria-hidden="true"><div class="ticker-track">${ticker}${ticker}</div></div>` : ''}
+<header class="hd">
+  <a class="wordmark" href="/"><img src="/static/logo.jpg" alt="" width="34" height="34"><span>Card Grade</span><sup>UY</sup></a>
+  <nav class="hd-nav" id="nav">
+    ${nav.map(([href, label]) => html`<a href="${href}" class="${ctx.path === href ? 'on' : ''}">${label}</a>`)}
+  </nav>
+  ${ctx.static
+    ? html`<a class="hd-cart" href="${waLink(s.whatsapp, 'Hola! Tengo una consulta')}" target="_blank" rel="noopener">WhatsApp ${arrow}</a>`
+    : html`<a class="hd-cart" href="/carrito">Carrito <b>${String(ctx.cartCount).padStart(2, '0')}</b></a>`}
+  <button class="hd-menu" type="button" data-toggle="nav" aria-label="Menú">Menú</button>
 </header>
-${ctx.flash ? html`<div class="wrap"><p class="flash flash-${ctx.flash.type}" role="status">${ctx.flash.msg}</p></div>` : ''}
+${ctx.flash ? html`<p class="flash flash-${ctx.flash.type}" role="status">${ctx.flash.msg}</p>` : ''}
 <main>${body}</main>
-<footer class="footer">
-  <div class="wrap footer-inner">
-    <div class="footer-brand">
-      <a class="brand" href="/">${logo}<span class="brand-name">${s.store_name}</span></a>
-      <p>${s.tagline} Cartas coleccionables de fútbol en Uruguay.</p>
-    </div>
-    <div class="footer-col">
-      <p class="footer-title">Tienda</p>
-      <a href="/">Catálogo</a><a href="/carrito">Carrito</a><a href="/guia">Guía de condiciones</a>
-    </div>
-    <div class="footer-col">
-      <p class="footer-title">Contacto</p>
-      <a href="https://instagram.com/${s.instagram}" rel="noopener" target="_blank">Instagram</a>
-      <a href="${waLink(s.whatsapp, 'Hola! Tengo una consulta')}" rel="noopener" target="_blank">WhatsApp</a>
-      <a href="/vender">Vendé tus cartas</a>
-    </div>
-    <div class="footer-col">
-      <p class="footer-title">Pagos seguros</p>
-      <p>Cobramos con Mercado Pago. Tus datos de tarjeta nunca pasan por este sitio.</p>
-    </div>
+<footer class="ft">
+  <div class="ft-mark" aria-hidden="true">Card Grade</div>
+  <div class="ft-grid">
+    <div><p class="lbl">Card Grade Uy</p><p>${s.tagline}<br>Cartas coleccionables de fútbol.<br>Montevideo, Uruguay.</p></div>
+    <div><p class="lbl">Tienda</p><a href="/">Catálogo</a><a href="/vender">Te compramos</a><a href="/guia">Guía de condiciones</a></div>
+    <div><p class="lbl">Contacto</p><a href="https://instagram.com/${s.instagram}" target="_blank" rel="noopener">Instagram @${s.instagram}</a><a href="${waLink(s.whatsapp, 'Hola! Tengo una consulta')}" target="_blank" rel="noopener">WhatsApp</a></div>
+    <div><p class="lbl">Pagos</p><p>Procesados por Mercado Pago.<br>Tarjetas, débito, Abitab y Redpagos.</p></div>
   </div>
-  <div class="wrap footer-bottom">
-    <span>© ${new Date().getFullYear()} ${s.store_name}</span>
-    ${ctx.static ? html`<span>Vista previa</span>` : html`<a href="/admin">Acceso administrador</a>`}
-  </div>
+  <div class="ft-base"><span>© ${new Date().getFullYear()} ${s.store_name}</span><span>Hecho en Uruguay</span>${ctx.static ? html`<span>Vista previa</span>` : html`<a href="/admin">Acceso administrador</a>`}</div>
 </footer>
 </body>
 </html>`;
@@ -101,275 +86,284 @@ ${ctx.flash ? html`<div class="wrap"><p class="flash flash-${ctx.flash.type}" ro
 
 /* ---------- Componentes ---------- */
 
-function cardArt(card, size = '') {
+function cardArt(card) {
   const imgs = parseImages(card);
   if (imgs.length) return html`<img src="/uploads/${imgs[0]}" alt="${card.title}" loading="lazy">`;
-  return html`<div class="art ${size}" data-team="${teamKey(card.team)}">
-    <span class="art-brand">${(card.brand || 'Card').toUpperCase()}</span>
-    <span class="art-initials">${initials(card.player || card.title)}</span>
-    <span class="art-name">${card.player || card.title}</span>
-    <span class="art-serial">${card.serial || (card.rookie ? 'RC' : '')}</span>
-  </div>`;
+  return html`<div class="noimg"><span>${card.player || card.title}</span></div>`;
 }
 
-function tags(card) {
-  return [card.serial && html`<span class="tag">${card.serial}</span>`, card.rookie ? html`<span class="tag tag-rc">RC</span>` : '', card.grade && html`<span class="tag">${card.grade}</span>`];
-}
-
-function tile(card) {
-  return html`<a class="tile" href="/carta/${card.slug}" data-status="${card.status}" data-team="${card.team}" data-rookie="${card.rookie ? 1 : 0}" data-serial="${card.serial ? 1 : 0}" data-price="${card.price}" data-search="${[card.title, card.player, card.team, card.brand].join(' ').toLowerCase()}">
-    <div class="tile-media">
-      ${cardArt(card)}
-      <div class="tile-tags">${tags(card)}</div>
-      ${card.status !== 'disponible' ? html`<span class="tile-badge badge-${card.status}">${STATUS[card.status]}</span>` : ''}
-    </div>
-    <div class="tile-body">
-      <p class="tile-meta">${[card.brand, card.team].filter(Boolean).join(' · ') || KIND[card.kind]}</p>
-      <h3>${card.title}</h3>
-      <div class="tile-row">
-        <span class="price">${money(card.price)}</span>
-        <span class="tile-go" aria-hidden="true">${icon.arrow}</span>
-      </div>
+function tile(card, i) {
+  return html`<a class="cell" href="/carta/${card.slug}" data-status="${card.status}" data-team="${card.team}" data-rookie="${card.rookie ? 1 : 0}" data-serial="${card.serial ? 1 : 0}" data-price="${card.price}" data-search="${[card.title, card.player, card.team, card.brand].join(' ').toLowerCase()}">
+    <div class="cell-top"><span>#${pad(i + 1)}</span><span>${[card.serial, card.rookie ? 'RC' : '', card.grade].filter(Boolean).join(' · ')}</span></div>
+    <div class="cell-img">${cardArt(card)}</div>
+    <div class="cell-info">
+      <h3>${card.player || card.title}</h3>
+      <p class="cell-set">${setLine(card)}</p>
+      <div class="cell-foot"><span class="price">${money(card.price)}</span><span class="st st-${card.status}">${STATUS[card.status]}</span></div>
     </div>
   </a>`;
 }
 
 /* ---------- Páginas públicas ---------- */
 
-export function catalogPage(ctx, { cards, stats, q, teams, page, pages }) {
+export function catalogPage(ctx, { cards, stats, q, teams, page, pages, counts = {}, offset = 0 }) {
   const opt = (name, value, label) => html`<option value="${value}" ${q[name] === value ? raw('selected') : ''}>${label}</option>`;
   const qs = (p) => '?' + new URLSearchParams({ ...q, page: p }).toString();
-  const chips = [
-    ['Todas', '/#catalogo', !q.equipo && !q.rookie && !q.numerada && !q.estado],
-    ['Disponibles', '/?estado=disponible#catalogo', q.estado === 'disponible'],
-    ['Uruguay', '/?equipo=Uruguay#catalogo', q.equipo === 'Uruguay'],
-    ['River Plate', '/?equipo=River%20Plate#catalogo', q.equipo === 'River Plate'],
-    ['Boca Juniors', '/?equipo=Boca%20Juniors#catalogo', q.equipo === 'Boca Juniors'],
-    ['Rookies', '/?rookie=1#catalogo', q.rookie === '1'],
-    ['Numeradas', '/?numerada=1#catalogo', q.numerada === '1'],
+  const tabs = [
+    ['Todas', '/#catalogo', counts.todas, !q.equipo && !q.rookie && !q.numerada && !q.estado],
+    ['Disponibles', '/?estado=disponible#catalogo', counts.disponibles, q.estado === 'disponible'],
+    ['Uruguay', '/?equipo=Uruguay#catalogo', counts.uruguay, q.equipo === 'Uruguay'],
+    ['River', '/?equipo=River%20Plate#catalogo', counts.river, q.equipo === 'River Plate'],
+    ['Boca', '/?equipo=Boca%20Juniors#catalogo', counts.boca, q.equipo === 'Boca Juniors'],
+    ['Rookies', '/?rookie=1#catalogo', counts.rookies, q.rookie === '1'],
+    ['Numeradas', '/?numerada=1#catalogo', counts.numeradas, q.numerada === '1'],
   ];
+  const month = new Date().toLocaleDateString('es-UY', { month: 'long', year: 'numeric' });
   const body = html`
-  <section class="hero">
-    <div class="wrap hero-inner">
-      <div class="hero-text">
-        <p class="pill-live"><span class="dot"></span>${stats.disponibles} cartas disponibles</p>
-        <h1>A card.<br><span class="grad">A life.</span></h1>
-        <p class="lead">Cartas de fútbol seleccionadas: Prizm, Optic, Topps Chrome, rookies y numeradas. Comprá en segundos y pagá con Mercado Pago.</p>
-        <div class="hero-cta">
-          <a class="btn btn-primary" href="#catalogo">Ver catálogo ${icon.arrow}</a>
-          <a class="btn btn-ghost" href="/vender">Vendé tus cartas</a>
+  <section class="intro">
+    <div class="intro-meta"><span>Catálogo — ${month}</span><span>Montevideo, UY</span><span>${pad(stats.disponibles)} disponibles</span></div>
+    <h1 class="mega">A card.<span class="mega-serif">a life.</span></h1>
+    <div class="intro-grid">
+      <div class="intro-copy">
+        <p>Cartas de fútbol elegidas una por una: Prizm, Optic, Topps Chrome, rookies y numeradas. Fotos reales de cada carta, pago con Mercado Pago y envío protegido a todo Uruguay.</p>
+        <div class="intro-cta">
+          <a class="btn" href="#catalogo">Ver el catálogo ${arrow}</a>
+          <a class="btn btn-line" href="/vender">Vender mis cartas</a>
         </div>
-        <ul class="perks">
-          <li>${icon.shield}Pago protegido</li>
-          <li>${icon.truck}Envíos a todo Uruguay</li>
-          <li>${icon.check}${stats.vendidas}+ vendidas</li>
-        </ul>
       </div>
-      <div class="hero-visual" aria-hidden="true">
-        <div class="glow"></div>
-        ${stats.featured.map((c, i) => html`<div class="hero-card hero-card-${i}">${cardArt(c, 'art-lg')}</div>`)}
+      <div class="intro-figs">
+        ${stats.featured.map((c, i) => html`<a class="fig fig-${i}" href="/carta/${c.slug}"><div class="fig-img">${cardArt(c)}</div><span class="fig-cap">Fig. ${pad(i + 1)} — ${c.player || c.title}, ${setLine(c)}</span></a>`)}
       </div>
     </div>
   </section>
 
-  <section class="wrap catalog" id="catalogo">
-    <div class="catalog-head">
-      <h2>Catálogo</h2>
-      <p class="muted">${stats.total} publicaciones · ${stats.disponibles} disponibles · ${stats.vendidas} vendidas</p>
-    </div>
-    <nav class="chips" aria-label="Filtros rápidos">
-      ${chips.map(([label, href, on]) => html`<a class="chip ${on ? 'on' : ''}" href="${href}">${label}</a>`)}
+  <section class="numbers">
+    <div><b>${pad(stats.disponibles)}</b><span>Disponibles</span></div>
+    <div><b>${pad(stats.total)}</b><span>Publicadas</span></div>
+    <div><b>${pad(stats.vendidas)}</b><span>Vendidas</span></div>
+    <div><b>48h</b><span>Respuesta a ofertas</span></div>
+  </section>
+
+  <section class="cat" id="catalogo">
+    <div class="sec-head"><h2 class="sec-title">Catálogo</h2><p class="lbl">Fotos reales · precios en pesos uruguayos</p></div>
+    <nav class="tabs" aria-label="Filtros rápidos">
+      ${tabs.map(([label, href, n, on]) => html`<a class="${on ? 'on' : ''}" href="${href}">${label}${n != null ? html`<sup>${n}</sup>` : ''}</a>`)}
     </nav>
-    <form class="toolbar" method="get" action="/#catalogo" data-autosubmit>
-      <label class="search">${icon.search}<span class="sr-only">Buscar</span>
-        <input type="search" name="q" value="${q.q}" placeholder="Buscar jugador, equipo o set" maxlength="80">
-      </label>
-      <select name="estado" aria-label="Estado">
-        ${opt('estado', '', 'Estado: todas')}${opt('estado', 'disponible', 'Disponibles')}${opt('estado', 'reservada', 'Reservadas')}${opt('estado', 'vendida', 'Vendidas')}
-      </select>
-      <select name="equipo" aria-label="Equipo">
-        ${opt('equipo', '', 'Equipo: todos')}${teams.map((t) => opt('equipo', t, t))}
-      </select>
-      <select name="orden" aria-label="Ordenar">
-        ${opt('orden', '', 'Más recientes')}${opt('orden', 'precio-asc', 'Menor precio')}${opt('orden', 'precio-desc', 'Mayor precio')}
-      </select>
+    <form class="filters" method="get" action="/#catalogo" data-autosubmit>
+      <label class="f-search"><span>Buscar</span><input type="search" name="q" value="${q.q}" placeholder="Jugador, equipo o set" maxlength="80"></label>
+      <label><span>Estado</span><select name="estado">${opt('estado', '', 'Todos')}${opt('estado', 'disponible', 'Disponibles')}${opt('estado', 'reservada', 'Reservadas')}${opt('estado', 'vendida', 'Vendidas')}</select></label>
+      <label><span>Equipo</span><select name="equipo">${opt('equipo', '', 'Todos')}${teams.map((t) => opt('equipo', t, t))}</select></label>
+      <label><span>Orden</span><select name="orden">${opt('orden', '', 'Recientes')}${opt('orden', 'precio-asc', 'Menor precio')}${opt('orden', 'precio-desc', 'Mayor precio')}</select></label>
       ${q.rookie ? html`<input type="hidden" name="rookie" value="1">` : ''}${q.numerada ? html`<input type="hidden" name="numerada" value="1">` : ''}
-      <button class="btn btn-ghost js-hide" type="submit">Filtrar</button>
+      <button class="btn btn-sm js-hide" type="submit">Filtrar</button>
     </form>
 
     ${cards.length
-      ? html`<div class="grid">${cards.map(tile)}</div>`
-      : html`<div class="empty"><p>No encontramos cartas con esos filtros.</p><a class="btn btn-ghost" href="/">Ver todo el catálogo</a></div>`}
+      ? html`<div class="cells">${cards.map((c, i) => tile(c, offset + i))}</div>`
+      : html`<div class="empty"><p>No hay cartas con esos filtros.</p><a class="btn btn-line" href="/">Ver todo</a></div>`}
 
     ${pages > 1 ? html`<nav class="pager" aria-label="Páginas">
-      ${page > 1 ? html`<a class="btn btn-ghost" href="${qs(page - 1)}#catalogo">Anterior</a>` : html`<span></span>`}
-      <span class="mono muted">${page} / ${pages}</span>
-      ${page < pages ? html`<a class="btn btn-ghost" href="${qs(page + 1)}#catalogo">Siguiente</a>` : html`<span></span>`}
+      ${page > 1 ? html`<a href="${qs(page - 1)}#catalogo">← Anterior</a>` : html`<span></span>`}
+      <span>Página ${page} de ${pages}</span>
+      ${page < pages ? html`<a href="${qs(page + 1)}#catalogo">Siguiente →</a>` : html`<span></span>`}
     </nav>` : ''}
   </section>
 
-  <section class="wrap">
-    <div class="sell-band">
-      <div>
-        <p class="eyebrow">Vendé tus cartas</p>
-        <h2>¿Tenés cartas guardadas? Te las compramos.</h2>
-        <p>Mandanos fotos y precio. Te respondemos con una oferta en menos de 48 h.</p>
-      </div>
-      <a class="btn btn-light" href="/vender">Ofrecer mis cartas ${icon.arrow}</a>
+  <section class="buyband">
+    <div class="buyband-l">
+      <p class="lbl">Te compramos</p>
+      <h2>¿Tenés cartas<br>guardadas?</h2>
     </div>
+    <ol class="buyband-r">
+      <li><b>01</b>Mandanos fotos y el precio que pedís.</li>
+      <li><b>02</b>Te respondemos con una oferta en menos de 48 h.</li>
+      <li><b>03</b>Cobrás por transferencia o en efectivo.</li>
+      <li class="buyband-cta"><a class="btn btn-dark" href="/vender">Ofrecer mis cartas ${arrow}</a></li>
+    </ol>
   </section>`;
-  return layout(ctx, { title: '', body });
+  return layout(ctx, { title: '', body, bodyClass: 'home' });
 }
 
 export function cardPage(ctx, { card, related }) {
   const imgs = parseImages(card);
   const s = ctx.settings;
   const available = card.status === 'disponible';
-  const specs = [
-    ['Jugador', card.player], ['Equipo', card.team], ['Marca / set', card.brand],
-    ['Numeración', card.serial], ['Tipo', KIND[card.kind]], ['Grado', card.grade], ['Rookie', card.rookie ? 'Sí (RC)' : ''],
+  const spec = [
+    ['Jugador', card.player], ['Equipo', card.team || '—'], ['Set', card.brand || '—'], ['Numeración', card.serial || 'Sin numerar'],
+    ['Rookie', card.rookie ? 'Sí (RC)' : 'No'], ['Tipo', card.grade ? `${KIND[card.kind]} · ${card.grade}` : KIND[card.kind]], ['Estado', STATUS[card.status]],
   ].filter(([, v]) => v);
+  const buy = !available
+    ? html`<p class="sold-note">Esta carta ya no está disponible. Escribinos y te avisamos si entra una similar.</p>`
+    : ctx.static
+      ? html`<div class="buy"><a class="btn btn-buy" href="/carta/${card.slug}/comprar/">Comprar <span>${money(card.price)}</span></a></div>`
+      : html`<form method="post" action="/carrito/agregar" class="buy">
+          ${csrfField(ctx)}<input type="hidden" name="card_id" value="${card.id}">
+          <button class="btn btn-buy" name="comprar" value="1">Comprar <span>${money(card.price)}</span></button>
+          <button class="btn btn-line" name="comprar" value="0">Agregar al carrito</button>
+        </form>`;
   const body = html`
-  <div class="wrap">
-    <nav class="crumbs"><a href="/#catalogo">Catálogo</a><span>/</span><span>${card.title}</span></nav>
-    <article class="detail">
-      <div class="gallery">
-        <div class="media-xl" id="main-image" data-status="${card.status}">
-          ${imgs.length ? html`<img src="/uploads/${imgs[0]}" alt="${card.title}">` : cardArt(card, 'art-lg')}
-        </div>
-        ${imgs.length > 1 ? html`<div class="thumbs">${imgs.map((img, i) => html`
-          <button type="button" class="thumb ${i === 0 ? 'active' : ''}" data-src="/uploads/${img}" aria-label="Ver foto ${i + 1}"><img src="/uploads/${img}" alt=""></button>`)}</div>` : ''}
-      </div>
-
-      <div class="info">
-        <div class="tile-tags static">${tags(card)}<span class="status status-${card.status}">${STATUS[card.status]}</span></div>
-        <h1>${card.title}</h1>
-        <p class="detail-price">${money(card.price)}</p>
-
-        ${available && ctx.static ? html`<div class="buy"><a class="btn btn-primary btn-block" target="_blank" rel="noopener" href="${waLink(s.whatsapp, `Hola! Quiero comprar la carta: ${card.title} (${money(card.price)})`)}">Comprar por WhatsApp</a></div>`
-        : available ? html`
-          <form method="post" action="/carrito/agregar" class="buy">
-            ${csrfField(ctx)}<input type="hidden" name="card_id" value="${card.id}">
-            <button class="btn btn-primary btn-block" name="comprar" value="1">Comprar ahora</button>
-            <button class="btn btn-ghost btn-block" name="comprar" value="0">Agregar al carrito</button>
-          </form>`
-        : html`<p class="muted">Esta carta ya no está disponible. Escribinos y te avisamos si entra una similar.</p>`}
-        <a class="wa-link" rel="noopener" target="_blank" href="${waLink(s.whatsapp, `Hola! Consulto por la carta: ${card.title} (${money(card.price)})`)}">Consultar por WhatsApp ${icon.arrow}</a>
-
-        <dl class="specs">
-          ${specs.map(([k, v]) => html`<div><dt>${k}</dt><dd>${v}</dd></div>`)}
-        </dl>
-        ${card.description ? html`<p class="description">${card.description}</p>` : ''}
-
-        <ul class="assurances">
-          <li>${icon.shield}<div><strong>Pago protegido</strong><span>Mercado Pago: tarjeta, débito, Abitab o Redpagos.</span></div></li>
-          <li>${icon.truck}<div><strong>Envío cuidado</strong><span>Top loader + sobre rígido a todo Uruguay, o retiro.</span></div></li>
-          <li>${icon.check}<div><strong>Carta revisada</strong><span>Lo que ves en las fotos es lo que recibís.</span></div></li>
-        </ul>
-      </div>
-    </article>
-
-    ${related.length ? html`<section class="related"><h2 class="section-title">También te puede gustar</h2><div class="grid">${related.map(tile)}</div></section>` : ''}
-  </div>`;
+  <nav class="crumb"><a href="/#catalogo">Catálogo</a><span>/</span>${card.team ? html`<span>${card.team}</span><span>/</span>` : ''}<span>${card.player || card.title}</span></nav>
+  <article class="pdp">
+    <figure class="pdp-fig">
+      <div class="crop" id="main-image" data-status="${card.status}">${imgs.length ? html`<img src="/uploads/${imgs[0]}" alt="${card.title}">` : cardArt(card)}</div>
+      ${imgs.length > 1 ? html`<div class="thumbs">${imgs.map((img, i) => html`<button type="button" class="thumb ${i === 0 ? 'active' : ''}" data-src="/uploads/${img}" aria-label="Ver foto ${i + 1}"><img src="/uploads/${img}" alt=""></button>`)}</div>` : ''}
+      <figcaption>Foto real de la carta. Lo que ves es lo que recibís.</figcaption>
+    </figure>
+    <div class="pdp-info">
+      <p class="lbl">${[card.brand, card.serial, card.rookie ? 'Rookie' : ''].filter(Boolean).join(' · ')}<span class="st st-${card.status}">${STATUS[card.status]}</span></p>
+      <h1 class="pdp-title">${card.player || card.title}</h1>
+      <p class="pdp-set">${setLine(card)}</p>
+      <p class="pdp-price">${money(card.price)}</p>
+      ${buy}
+      <a class="wa" target="_blank" rel="noopener" href="${waLink(s.whatsapp, `Hola! Consulto por la carta: ${card.title} (${money(card.price)})`)}">Consultar por WhatsApp ${arrow}</a>
+      <table class="spec"><tbody>${spec.map(([k, v]) => html`<tr><th>${k}</th><td>${v}</td></tr>`)}</tbody></table>
+      ${card.description ? html`<p class="description">${card.description}</p>` : ''}
+      <ol class="notes">
+        <li><b>01</b><span><strong>Pago con Mercado Pago.</strong> Tarjeta, débito, dinero en cuenta, Abitab o Redpagos.</span></li>
+        <li><b>02</b><span><strong>Reserva automática.</strong> Mientras pagás, la carta queda apartada para vos.</span></li>
+        <li><b>03</b><span><strong>Envío protegido.</strong> Top loader y sobre rígido a todo Uruguay, o retiro.</span></li>
+      </ol>
+    </div>
+  </article>
+  ${related.length ? html`<section class="cat related"><div class="sec-head"><h2 class="sec-title">Seguí mirando</h2></div><div class="cells">${related.map((c, i) => tile(c, i))}</div></section>` : ''}`;
   return layout(ctx, { title: card.title, body, description: `${card.title} — ${money(card.price)}. ${STATUS[card.status]}.` });
 }
 
 export function cartPage(ctx, { items, subtotal }) {
-  const body = html`<div class="wrap narrow">
-    <h1 class="page-title">Carrito</h1>
+  const body = html`<section class="page">
+    <div class="page-head"><p class="lbl">Paso 1 de 3</p><h1 class="page-title">Carrito</h1></div>
     ${items.length ? html`
       <ul class="lines">
         ${items.map((c) => html`<li class="line">
-          <a href="/carta/${c.slug}" class="line-art">${cardArt(c)}</a>
-          <div class="line-info"><a href="/carta/${c.slug}">${c.title}</a><span class="mono muted">${c.brand} ${c.serial}</span></div>
+          <a href="/carta/${c.slug}" class="line-img">${cardArt(c)}</a>
+          <div class="line-info"><a href="/carta/${c.slug}">${c.player || c.title}</a><span>${setLine(c)}</span></div>
           <span class="price">${money(c.price)}</span>
-          <form method="post" action="/carrito/quitar">${csrfField(ctx)}<input type="hidden" name="card_id" value="${c.id}"><button class="btn-x" aria-label="Quitar">✕</button></form>
+          <form method="post" action="/carrito/quitar">${csrfField(ctx)}<input type="hidden" name="card_id" value="${c.id}"><button class="x" aria-label="Quitar">Quitar</button></form>
         </li>`)}
       </ul>
-      <div class="summary"><span>Subtotal</span><strong>${money(subtotal)}</strong></div>
-      <p class="muted small">El envío se calcula en el siguiente paso. Cada carta es única: se reserva por 30 minutos al iniciar el pago.</p>
-      <a class="btn btn-primary btn-block" href="/checkout">Continuar</a>`
-    : html`<div class="empty"><p>Tu carrito está vacío.</p><a class="btn btn-ghost" href="/">Ver catálogo</a></div>`}
-  </div>`;
+      <div class="total"><span>Subtotal</span><strong>${money(subtotal)}</strong></div>
+      <p class="fine">El envío se calcula en el siguiente paso. Cada carta es única: queda reservada 30 minutos al iniciar el pago.</p>
+      <a class="btn btn-buy" href="/checkout">Continuar <span>${arrow}</span></a>`
+    : html`<div class="empty"><p>Tu carrito está vacío.</p><a class="btn btn-line" href="/">Ver catálogo</a></div>`}
+  </section>`;
   return layout(ctx, { title: 'Carrito', body });
 }
 
-export function checkoutPage(ctx, { items, subtotal, form = {}, errors = [] }) {
+export function checkoutPage(ctx, { items, subtotal, form = {}, errors = [], action = '/checkout' }) {
   const s = ctx.settings;
   const shipping = Number(s.shipping_cost) || 0;
   const delivery = form.delivery || 'envio';
-  const body = html`<div class="wrap checkout">
-    <form method="post" action="/checkout" class="panel" novalidate>
-      ${csrfField(ctx)}
-      <h1 class="page-title">Tus datos</h1>
-      ${errors.length ? html`<ul class="errors">${errors.map((e) => html`<li>${e}</li>`)}</ul>` : ''}
-      <label>Nombre y apellido<input name="name" required maxlength="80" autocomplete="name" value="${form.name || ''}"></label>
-      <label>Email<input name="email" type="email" required maxlength="120" autocomplete="email" value="${form.email || ''}"></label>
-      <label>Celular<input name="phone" type="tel" required maxlength="20" autocomplete="tel" value="${form.phone || ''}" placeholder="099 123 456"></label>
-      <fieldset class="choice">
-        <legend>Entrega</legend>
-        <label class="radio"><input type="radio" name="delivery" value="envio" ${delivery === 'envio' ? raw('checked') : ''}> Envío a domicilio <span class="mono">${money(shipping)}</span></label>
-        <label class="radio"><input type="radio" name="delivery" value="retiro" ${delivery === 'retiro' ? raw('checked') : ''}> Retiro <span class="mono">Gratis</span></label>
-        <p class="muted small">${s.pickup_info}</p>
-      </fieldset>
-      <label>Dirección (si elegiste envío)<textarea name="address" maxlength="300" rows="2" autocomplete="street-address">${form.address || ''}</textarea></label>
-      <button class="btn btn-primary btn-block">Pagar con Mercado Pago</button>
-      <p class="muted small center">Vas a pagar en el sitio seguro de Mercado Pago. Nunca te pedimos datos de tarjeta.</p>
-    </form>
-    <aside class="panel order-summary">
-      <h2 class="mono small">RESUMEN</h2>
-      <ul class="mini-lines">${items.map((c) => html`<li><span>${c.title}</span><span class="mono">${money(c.price)}</span></li>`)}</ul>
-      <div class="summary"><span>Subtotal</span><strong>${money(subtotal)}</strong></div>
-      <p class="muted small">+ envío ${money(shipping)} si corresponde.</p>
-    </aside>
-  </div>`;
+  const body = html`<section class="page checkout">
+    <div class="page-head"><p class="lbl">Paso 2 de 3</p><h1 class="page-title">Tus datos</h1></div>
+    <div class="co-grid">
+      <form method="post" action="${action}" class="sheet" novalidate data-checkout>
+        ${ctx.static ? '' : csrfField(ctx)}
+        ${errors.length ? html`<ul class="errors">${errors.map((e) => html`<li>${e}</li>`)}</ul>` : ''}
+        <label>Nombre y apellido<input name="name" required maxlength="80" autocomplete="name" value="${form.name || ''}"></label>
+        <div class="two">
+          <label>Email<input name="email" type="email" required maxlength="120" autocomplete="email" value="${form.email || ''}"></label>
+          <label>Celular<input name="phone" type="tel" required maxlength="20" autocomplete="tel" value="${form.phone || ''}" placeholder="099 123 456"></label>
+        </div>
+        <fieldset class="choice">
+          <legend>Entrega</legend>
+          <label class="radio"><input type="radio" name="delivery" value="envio" ${delivery === 'envio' ? raw('checked') : ''}><span>Envío a domicilio</span><em>${money(shipping)}</em></label>
+          <label class="radio"><input type="radio" name="delivery" value="retiro" ${delivery === 'retiro' ? raw('checked') : ''}><span>Retiro en Montevideo</span><em>Gratis</em></label>
+        </fieldset>
+        <label>Dirección (si elegiste envío)<textarea name="address" maxlength="300" rows="2" autocomplete="street-address">${form.address || ''}</textarea></label>
+        <button class="btn btn-buy">Ir a pagar con Mercado Pago <span>${arrow}</span></button>
+        <p class="fine">El pago se hace en Mercado Pago. Card Grade nunca ve ni guarda los datos de tu tarjeta.</p>
+      </form>
+      <aside class="sheet summary">
+        <p class="lbl">Resumen</p>
+        <ul class="mini">${items.map((c) => html`<li><span>${c.title}</span><b>${money(c.price)}</b></li>`)}</ul>
+        <div class="total"><span>Subtotal</span><strong data-subtotal="${subtotal}">${money(subtotal)}</strong></div>
+        <p class="fine">+ envío ${money(shipping)} si corresponde.</p>
+      </aside>
+    </div>
+  </section>`;
   return layout(ctx, { title: 'Checkout', body });
 }
 
-export function resultPage(ctx, { order, items, demo }) {
+// Simulación del paso de Mercado Pago (sólo modo demo; en producción se redirige al sitio real de Mercado Pago).
+export function mpDemoPage(ctx, { order, items, action, links }) {
+  const methods = [
+    ['credito', 'Tarjeta de crédito', 'Visa, Mastercard, OCA, Creditel · hasta 12 cuotas'],
+    ['debito', 'Tarjeta de débito', 'Visa Débito, Maestro'],
+    ['cuenta', 'Dinero en cuenta de Mercado Pago', 'Pago al instante'],
+    ['efectivo', 'Efectivo en Abitab o Redpagos', 'Se acredita al pagar en el local'],
+  ];
+  const btns = links
+    ? html`<a class="btn btn-buy" href="${links.approved}">Pagar <span data-total-text>${money(order.total)}</span></a>
+           <div class="mp-alt"><a href="${links.pending}">Simular pago pendiente (Abitab)</a><a href="${links.rejected}">Simular tarjeta rechazada</a></div>`
+    : html`<form method="post" action="${action}">${csrfField(ctx)}
+           <button class="btn btn-buy" name="result" value="approved">Pagar <span>${money(order.total)}</span></button>
+           <div class="mp-alt"><button class="link" name="result" value="pending">Simular pago pendiente (Abitab)</button><button class="link" name="result" value="rejected">Simular tarjeta rechazada</button></div></form>`;
+  const body = html`<section class="page mp">
+    <div class="mp-banner"><b>Simulación</b> En la tienda real, este paso ocurre en el sitio oficial de Mercado Pago. Acá podés probar qué pasa con un pago aprobado, pendiente o rechazado.</div>
+    <div class="page-head"><p class="lbl">Paso 3 de 3 · Mercado Pago</p><h1 class="page-title">Pagá tu compra</h1></div>
+    <div class="co-grid">
+      <div class="sheet">
+        <p class="lbl">Elegí cómo pagar</p>
+        <div class="methods">${methods.map(([v, t, d], i) => html`<label class="method"><input type="radio" name="metodo" value="${v}" ${i === 0 ? raw('checked') : ''}><span><strong>${t}</strong><em>${d}</em></span></label>`)}</div>
+        ${btns}
+      </div>
+      <aside class="sheet summary">
+        <p class="lbl">Pagás a Card Grade Uy</p>
+        <ul class="mini">${items.map((i) => html`<li><span>${i.title}</span><b>${money(i.price)}</b></li>`)}
+          <li data-ship-row ${order.shipping ? '' : raw('hidden')}><span>Envío</span><b>${money(order.shipping || Number(ctx.settings.shipping_cost) || 0)}</b></li></ul>
+        <div class="total"><span>Total</span><strong data-total data-base="${order.total}" data-ship="${Number(ctx.settings.shipping_cost) || 0}">${money(order.total)}</strong></div>
+        <p class="fine">Pedido ${order.id ? order.id.slice(0, 8).toUpperCase() : 'DEMO'} · la carta queda reservada 30 minutos.</p>
+      </aside>
+    </div>
+  </section>`;
+  return layout(ctx, { title: 'Pago', body });
+}
+
+export function resultPage(ctx, { order, items, demo, retryHref }) {
   const msgs = {
-    pagada: ['¡Pago aprobado!', 'Gracias por tu compra. Te escribimos en breve para coordinar la entrega.'],
+    pagada: ['Pago aprobado', '¡Gracias por tu compra! Te escribimos por WhatsApp para coordinar la entrega.'],
     enviada: ['Pedido enviado', 'Tu pedido ya está en camino.'],
     entregada: ['Pedido entregado', '¡Que la disfrutes!'],
-    pendiente: ['Esperando confirmación del pago', 'Si pagaste en Abitab o Redpagos puede demorar. Esta página se actualiza sola.'],
-    expirada: ['La reserva expiró', 'No recibimos el pago a tiempo y las cartas volvieron al catálogo.'],
-    cancelada: ['Pedido cancelado', 'Si fue un error, escribinos por WhatsApp.'],
-    revisar: ['Pago recibido — en revisión', 'Recibimos tu pago y lo estamos revisando. Te contactamos a la brevedad.'],
+    pendiente: ['Pago pendiente', 'Si pagás en Abitab o Redpagos, se acredita al pagar. La carta sigue reservada para vos.'],
+    expirada: ['La reserva venció', 'No recibimos el pago a tiempo y la carta volvió al catálogo.'],
+    cancelada: ['Pago rechazado', 'Mercado Pago no aprobó el pago y la carta volvió al catálogo. Podés intentar de nuevo con otro medio.'],
+    revisar: ['Pago en revisión', 'Recibimos tu pago y lo estamos revisando. Te contactamos a la brevedad.'],
   };
   const [title, text] = msgs[order.status];
-  const body = html`<div class="wrap narrow result">
+  const ok = ['pagada', 'enviada', 'entregada'].includes(order.status);
+  const body = html`<section class="page result">
+    ${ctx.static ? html`<div class="mp-banner"><b>Simulación</b> Así termina la compra en la tienda real. En esta demostración no se cobró nada.</div>` : ''}
     ${order.status === 'pendiente' && !demo ? raw('<meta http-equiv="refresh" content="10">') : ''}
-    <p class="eyebrow mono">Pedido ${order.id.slice(0, 8).toUpperCase()}</p>
-    <h1 class="page-title">${title}</h1>
+    <div class="page-head"><p class="lbl">Pedido ${order.id.slice(0, 8).toUpperCase()}</p><h1 class="page-title ${ok ? 'ok' : ''}">${title}</h1></div>
     <p class="lead">${text}</p>
-    <ul class="mini-lines">${items.map((i) => html`<li><span>${i.title}</span><span class="mono">${money(i.price)}</span></li>`)}
-      ${order.shipping ? html`<li><span>Envío</span><span class="mono">${money(order.shipping)}</span></li>` : ''}</ul>
-    <div class="summary"><span>Total</span><strong>${money(order.total)}</strong></div>
-    ${demo && order.status === 'pendiente' ? html`
-      <form method="post" action="/pago/demo/${order.id}" class="demo-box">
-        ${csrfField(ctx)}
-        <p class="mono small">MODO DEMO — sin credenciales de Mercado Pago</p>
-        <button class="btn btn-primary btn-block">Simular pago aprobado</button>
-      </form>` : ''}
-    <a class="btn btn-ghost" href="/">Volver al catálogo</a>
-  </div>`;
+    <div class="sheet">
+      <ul class="mini">${items.map((i) => html`<li><span>${i.title}</span><b>${money(i.price)}</b></li>`)}
+        ${order.shipping ? html`<li><span>Envío</span><b>${money(order.shipping)}</b></li>` : ''}
+        ${ctx.static ? html`<li data-ship-row hidden><span>Envío</span><b>${money(Number(ctx.settings.shipping_cost) || 0)}</b></li>` : ''}</ul>
+      <div class="total"><span>Total</span><strong data-total data-base="${order.total}" data-ship="${Number(ctx.settings.shipping_cost) || 0}">${money(order.total)}</strong></div>
+    </div>
+    ${demo && (order.status === 'pendiente' || (order.status === 'cancelada' && retryHref)) ? html`<a class="btn btn-line" href="${retryHref || `/pago/demo/${order.id}`}">${order.status === 'cancelada' ? 'Intentar de nuevo' : 'Volver al pago simulado'}</a>` : ''}
+    <a class="btn" href="/">Volver al catálogo</a>
+  </section>`;
   return layout(ctx, { title, body });
 }
 
 export function sellPage(ctx, { form = {}, errors = [], sent = false }) {
-  const body = html`<div class="wrap sell">
-    <div class="sell-intro">
-      <p class="eyebrow mono">Vendeme tus cartas</p>
-      <h1>Tu colección<br>tiene valor.</h1>
-      <p class="lead">Compramos cartas de fútbol: numeradas, rookies, autógrafos, graduadas y lotes.</p>
-      <ol class="steps">
-        <li><span class="mono">01</span><div><strong>Mandá fotos</strong><p class="muted">Frente y dorso, con buena luz.</p></div></li>
-        <li><span class="mono">02</span><div><strong>Recibí una oferta</strong><p class="muted">Te respondemos en menos de 48 h.</p></div></li>
-        <li><span class="mono">03</span><div><strong>Cobrá</strong><p class="muted">Transferencia o efectivo al entregar.</p></div></li>
+  const body = html`<section class="page sell">
+    <div class="sell-l">
+      <p class="lbl">Te compramos</p>
+      <h1 class="mega mega-sm">Tu colección<span class="mega-serif">tiene valor.</span></h1>
+      <p class="lead">Compramos cartas de fútbol: numeradas, rookies, autógrafos, graduadas, lotes y colecciones enteras.</p>
+      <ol class="notes">
+        <li><b>01</b><span><strong>Mandá fotos.</strong> Frente y dorso, con buena luz.</span></li>
+        <li><b>02</b><span><strong>Recibí una oferta.</strong> Te respondemos en menos de 48 h.</span></li>
+        <li><b>03</b><span><strong>Cobrá.</strong> Transferencia o efectivo al entregar.</span></li>
       </ol>
     </div>
-    ${ctx.static ? html`<div class="panel"><h2 style="margin-bottom:12px">Mandanos tus cartas</h2><p class="muted">Escribinos por WhatsApp con fotos (frente y dorso) y el precio que pedís. Te respondemos en menos de 48 h.</p><a class="btn btn-primary btn-block" target="_blank" rel="noopener" href="${waLink(ctx.settings.whatsapp, 'Hola! Quiero ofrecerles unas cartas')}">Ofrecer por WhatsApp</a></div>` : sent ? html`<div class="panel center"><h2>¡Recibimos tu oferta!</h2><p class="muted">Te contactamos por WhatsApp o email en menos de 48 h.</p><a class="btn btn-ghost" href="/">Volver al catálogo</a></div>` : html`
-    <form class="panel" method="post" action="/vender" enctype="multipart/form-data" novalidate>
+    ${ctx.static
+      ? html`<div class="sheet"><p class="lbl">Ofrecé tus cartas</p><h2 class="sheet-title">Escribinos por WhatsApp</h2><p>Mandanos fotos (frente y dorso) y el precio que pedís. En la tienda completa esto es un formulario con subida de fotos que llega directo al panel.</p><a class="btn btn-buy" target="_blank" rel="noopener" href="${waLink(ctx.settings.whatsapp, 'Hola! Quiero ofrecerles unas cartas')}">Ofrecer por WhatsApp <span>${arrow}</span></a></div>`
+      : sent ? html`<div class="sheet"><h2 class="sheet-title">Recibimos tu oferta</h2><p>Te contactamos por WhatsApp o email en menos de 48 h.</p><a class="btn btn-line" href="/">Volver al catálogo</a></div>`
+      : html`<form class="sheet" method="post" action="/vender" enctype="multipart/form-data" novalidate>
       <input type="hidden" name="_csrf" value="${ctx.csrf}">
       ${errors.length ? html`<ul class="errors">${errors.map((e) => html`<li>${e}</li>`)}</ul>` : ''}
       <label>Nombre<input name="name" required maxlength="80" value="${form.name || ''}" autocomplete="name"></label>
@@ -377,16 +371,16 @@ export function sellPage(ctx, { form = {}, errors = [], sent = false }) {
         <label>Email<input name="email" type="email" required maxlength="120" value="${form.email || ''}" autocomplete="email"></label>
         <label>Celular<input name="phone" type="tel" required maxlength="20" value="${form.phone || ''}" autocomplete="tel"></label>
       </div>
-      <label>¿Qué cartas querés vender?<textarea name="cards_desc" required maxlength="2000" rows="5" placeholder="Ej: Messi Prizm 2022 Silver, Valverde Optic /99 RC…">${form.cards_desc || ''}</textarea></label>
+      <label>¿Qué cartas querés vender?<textarea name="cards_desc" required maxlength="2000" rows="5" placeholder="Ej.: Valverde Optic /99 RC, lote de 20 Prizm base…">${form.cards_desc || ''}</textarea></label>
       <label>Precio pretendido (opcional)<input name="asking_price" maxlength="60" value="${form.asking_price || ''}" placeholder="UY$ o abierto a ofertas"></label>
-      <label class="file">Fotos (hasta 6, JPG/PNG/WEBP, máx. 6 MB c/u)<input type="file" name="photos" accept="image/jpeg,image/png,image/webp" multiple data-preview></label>
+      <label class="file">Fotos — hasta 6 (JPG, PNG o WEBP, máx. 6 MB)<input type="file" name="photos" accept="image/jpeg,image/png,image/webp" multiple data-preview></label>
       <div class="preview" data-preview-target></div>
       <label class="hp" aria-hidden="true">No completar<input name="website" tabindex="-1" autocomplete="off"></label>
-      <button class="btn btn-primary btn-block">Enviar oferta</button>
-      <p class="muted small center">Usamos tus datos sólo para responderte sobre esta oferta.</p>
+      <button class="btn btn-buy">Enviar oferta <span>${arrow}</span></button>
+      <p class="fine">Usamos tus datos sólo para responderte sobre esta oferta.</p>
     </form>`}
-  </div>`;
-  return layout(ctx, { title: 'Vendeme tus cartas', body });
+  </section>`;
+  return layout(ctx, { title: 'Te compramos tus cartas', body });
 }
 
 export function guidePage(ctx) {
@@ -398,28 +392,25 @@ export function guidePage(ctx) {
     ['Good / Played', '1–4', 'Marcas, pliegues o rayones evidentes.'],
   ];
   const glossary = [
-    ['RC (Rookie)', 'Primera carta oficial del jugador en una colección de primera división.'],
-    ['Numerada (/99)', 'Tirada limitada: sólo existen 99 copias, numeradas a mano o estampadas.'],
+    ['RC — Rookie', 'Primera carta oficial del jugador en una colección de primera división.'],
+    ['Numerada (/99)', 'Tirada limitada: sólo existen 99 copias, numeradas.'],
     ['Parallel', 'Versión alternativa de una carta base, con otro color o acabado.'],
-    ['Prizm / Optic / Chrome', 'Líneas de Panini y Topps con acabado metálico tipo refractor.'],
-    ['Graduada (slab)', 'Carta evaluada y encapsulada por PSA, Beckett o similar, con nota oficial.'],
+    ['Prizm · Optic · Chrome', 'Líneas de Panini y Topps con acabado metálico tipo refractor.'],
+    ['Graduada', 'Carta evaluada y encapsulada por PSA, Beckett o similar, con nota oficial.'],
   ];
-  const body = html`<div class="wrap narrow guide">
-    <p class="eyebrow mono">Guía</p>
-    <h1 class="page-title">Condiciones y glosario</h1>
+  const body = html`<section class="page guide">
+    <div class="page-head"><p class="lbl">Guía</p><h1 class="page-title">Condiciones y glosario</h1></div>
     <p class="lead">Así describimos el estado de cada carta. Ante cualquier duda, pedinos más fotos.</p>
-    <table class="table">
-      <thead><tr><th>Condición</th><th class="mono">Escala</th><th>Descripción</th></tr></thead>
-      <tbody>${conditions.map(([a, b, c]) => html`<tr><td><strong>${a}</strong></td><td class="mono">${b}</td><td>${c}</td></tr>`)}</tbody>
-    </table>
-    <h2 class="section-title">Glosario</h2>
-    <dl class="glossary">${glossary.map(([t, d]) => html`<div><dt>${t}</dt><dd class="muted">${d}</dd></div>`)}</dl>
-  </div>`;
+    <table class="spec spec-wide"><thead><tr><th>Condición</th><th>Escala</th><th>Descripción</th></tr></thead>
+      <tbody>${conditions.map(([a, b, c]) => html`<tr><td><strong>${a}</strong></td><td class="mono">${b}</td><td>${c}</td></tr>`)}</tbody></table>
+    <h2 class="sec-title sec-sm">Glosario</h2>
+    <dl class="gloss">${glossary.map(([t, d]) => html`<div><dt>${t}</dt><dd>${d}</dd></div>`)}</dl>
+  </section>`;
   return layout(ctx, { title: 'Guía de condiciones', body });
 }
 
 export function errorPage(ctx, { status, message }) {
-  return layout(ctx, { title: String(status), body: html`<div class="wrap narrow empty"><p class="mono">${status}</p><h1 class="page-title">${message}</h1><a class="btn btn-ghost" href="/">Volver al catálogo</a></div>` });
+  return layout(ctx, { title: String(status), body: html`<section class="page empty"><p class="lbl">Error ${status}</p><h1 class="page-title">${message}</h1><a class="btn" href="/">Volver al catálogo</a></section>` });
 }
 
 /* ---------- Panel de administración ---------- */
