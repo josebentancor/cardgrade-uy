@@ -1,0 +1,24 @@
+{
+  "name": "cardgrade-web",
+  "version": "1.0.0",
+  "description": "Tienda online de Card Grade Uy: catálogo, pagos con Mercado Pago, panel de administración y ofertas de compra.",
+  "type": "module",
+  "private": true,
+  "engines": {
+    "node": ">=22.13"
+  },
+  "scripts": {
+    "start": "node --env-file-if-exists=.env src/server.js",
+    "dev": "node --watch --env-file-if-exists=.env src/server.js",
+    "seed": "node --env-file-if-exists=.env scripts/seed.js",
+    "import-yala": "node --env-file-if-exists=.env scripts/import-yala.js",
+    "create-admin": "node --env-file-if-exists=.env scripts/create-admin.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "express": "^4.21.2",
+    "express-rate-limit": "^7.5.0",
+    "helmet": "^8.0.0",
+    "multer": "^2.0.2"
+  }
+}
