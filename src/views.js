@@ -256,7 +256,7 @@ export function checkoutPage(ctx, { items, subtotal, form = {}, errors = [], act
   const body = html`<section class="page checkout">
     <div class="page-head"><p class="lbl">Paso 2 de 3</p><h1 class="page-title">Tus datos</h1></div>
     <div class="co-grid">
-      <form method="post" action="${action}" class="sheet" novalidate data-checkout>
+      ${ctx.static ? raw(`<form class="sheet" novalidate data-checkout data-next="${action}">`) : raw(`<form method="post" action="${action}" class="sheet" novalidate data-checkout>`)}
         ${ctx.static ? '' : csrfField(ctx)}
         ${errors.length ? html`<ul class="errors">${errors.map((e) => html`<li>${e}</li>`)}</ul>` : ''}
         <label>Nombre y apellido<input name="name" required maxlength="80" autocomplete="name" value="${form.name || ''}"></label>

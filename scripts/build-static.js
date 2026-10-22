@@ -7,6 +7,7 @@ import * as v from '../src/views.js';
 
 const BASE = (process.argv[2] || '/cardgrade-uy').replace(/\/$/, '');
 const OUT = path.resolve('docs');
+const VERSION = Date.now().toString(36);
 fs.rmSync(OUT, { recursive: true, force: true });
 fs.mkdirSync(path.join(OUT, 'static'), { recursive: true });
 fs.mkdirSync(path.join(OUT, 'uploads'), { recursive: true });
@@ -18,7 +19,8 @@ const ticker = db.prepare("SELECT title, price FROM cards WHERE status = 'dispon
 const ctx = (p) => ({ settings, cartCount: 0, csrf: '', flash: null, path: p, isAdmin: false, static: true, ticker });
 const fix = (page) => String(page)
   .replace(/(href|src|action)="\/(?!\/)/g, `$1="${BASE}/`)
-  .replace('<body>', '<body data-static>');
+  .replace(/<body( class="[^"]*")?>/, '<body$1 data-static>')
+  .replace(/static\/(app\.js|style\.css)"/g, `static/$1?v=${VERSION}"`);
 function write(rel, page) {
   const file = path.join(OUT, rel);
   fs.mkdirSync(path.dirname(file), { recursive: true });

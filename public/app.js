@@ -75,7 +75,7 @@ document.addEventListener('DOMContentLoaded', () => {
       form.querySelectorAll('input, textarea').forEach((el) => { el.style.outline = missing.includes(el.name) ? '2px solid #e5401c' : ''; });
       if (missing.length) return;
       try { sessionStorage.setItem('cg-delivery', d.get('delivery')); } catch {}
-      location.href = form.getAttribute('action');
+      location.href = form.dataset.next;
     });
   }
   let delivery = 'envio';
